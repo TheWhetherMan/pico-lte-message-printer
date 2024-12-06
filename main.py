@@ -7,9 +7,11 @@ import time
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
 from pico_lte.common import debug
+import urequests as requests
+from machine import UART
 
 # Set configurations
-debug.set_level(0)
+#debug.set_level(0)
 
 # Definitions and signatures
 USER_LED = Pin(22, mode=Pin.OUT)
@@ -49,8 +51,28 @@ print(temp)
 # Reach out to web for data
 print("\n**** Registering LTE network... ****")
 picoLTE = PicoLTE()
+picoLTE.network.register_network()
+picoLTE.http.set_context_id()
+picoLTE.network.get_pdp_ready()
+picoLTE.http.set_server_url()
 
-print("\n**** Sending a request to read table... ****")
-result = picoLTE.google_sheets.get_data(sheet="Sheet1", data_range="A1:C2")
-debug.info("Result:", result)
+print("\n**** Ready to send request... ****")
+result = picoLTE.http.get()
+debug.info(result)
+
+print("\n**** Done, will read response shortly... ****")
+time.sleep(5)
+result = picoLTE.http.read_response()
+debug.info(result)
+if result["status"] == Status.SUCCESS:
+    debug.info("Get request succeeded.")
+    
+print("\n**** Printing message... ****")
+uart = UART(1, 19200)
+uart.write("TEST")
+uart.flush()
+
+print("\n**** Program Exiting ****")
+
+
 
