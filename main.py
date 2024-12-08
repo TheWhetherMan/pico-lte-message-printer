@@ -7,7 +7,6 @@ import time
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
 from pico_lte.common import debug
-import urequests as requests
 from machine import UART
 
 # Set configurations
@@ -73,6 +72,3 @@ uart.write("TEST")
 uart.flush()
 
 print("\n**** Program Exiting ****")
-
-
-
