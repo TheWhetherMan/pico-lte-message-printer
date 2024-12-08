@@ -1,9 +1,8 @@
-import machine, neopixel, utime, os, time
-from machine import Pin, Timer
+import machine, neopixel, utime, os, time, sys
+from machine import Pin
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
 from pico_lte.common import debug
-from machine import UART
 from printer import printMessage
 
 # Uncomment this for verbose logging
@@ -24,30 +23,12 @@ neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
 showRainbow = False            
 readDelay = 5
 
-def rainbow_cycle(wait):
-    for j in range(255):
-        for i in range(NUM_LEDS):
-            rc_index = (i * 256 // NUM_LEDS) + j
-            np[i] = wheel(rc_index & 255)  # Set LED color using wheel function
-        np.write()
-        utime.sleep_ms(wait)
-
-def wheel(pos):
-    if pos < 85:
-        return (255 - pos * 3, pos * 3, 0)  # Red to Green transition
-    elif pos < 170:
-        pos -= 85
-        return (0, 255 - pos * 3, pos * 3)  # Green to Blue transition
-    else:
-        pos -= 170
-        return (pos * 3, 0, 255 - pos * 3)  # Blue to Red transition
-
 def parseAndPrint(response):
     shouldPrint = True
     if shouldPrint:
         showRainbow = True
         print("\n**** Printing message... ****")
-        printMessage(result)
+        printMessage(response)
         showRainbow = False
         
 # Set NeoPixel LEDs and user LED off
