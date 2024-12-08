@@ -21,12 +21,13 @@ neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
 showRainbow = False            
 readDelay = 5
         
-# Set NeoPixel LEDs and user LED off
+# Sets all NeoPixel LEDs off
 def set_neopixel_off():
     for i in range(NEOPIXEL_NUM_LEDS):
         neopixel[i] = (0, 0, 0)
     neopixel.write()
 
+# Turns LEDs off, checks local data file, logs ambient temperature, and registers LTE network
 def run_initial_setup():
     # Turn off all LEDs
     set_neopixel_off();
@@ -90,6 +91,7 @@ def parse_and_try_print(response):
         print("\n**** Exception occurred while parsing response! ****")
         light_up_neopixel = False
 
+# Run the initial setup and then keep sending requests (main loop)
 try:
     run_initial_setup()
     while True:
