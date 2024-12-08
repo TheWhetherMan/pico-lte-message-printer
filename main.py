@@ -4,7 +4,6 @@ import neopixel, utime, os, time
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
 from pico_lte.common import debug
-import urequests as requests
 from machine import UART
 from printer import printMessage
 
@@ -105,6 +104,3 @@ while True:
     
 USER_LED.off()
 print("\n**** Program Exiting ****")
-
-
-
