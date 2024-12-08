@@ -1,6 +1,5 @@
-import machine
+import machine, neopixel, utime, os, time
 from machine import Pin, Timer
-import neopixel, utime, os, time
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
 from pico_lte.common import debug
@@ -83,24 +82,29 @@ picoLTE.http.set_context_id()
 picoLTE.network.get_pdp_ready()
 picoLTE.http.set_server_url()
 print("\n**** Ready to send requests... ****")
-                  
-while True:
-    USER_LED.on()
-    result = picoLTE.http.get()
-    debug.info(result)
 
-    print("\n**** Done, will read response shortly... ****")
-    time.sleep(readDelay)
-    result = picoLTE.http.read_response()
-    debug.info(result)
-    if result["status"] == Status.SUCCESS:
-        # Looks good, reset delay
-        readDelay = 5
-        parseAndPrint(result)
-    else:
-        # No dice, extend delay before reading response
-        readDelay = 15
+try:        
+    while True:
+        USER_LED.on()
+        result = picoLTE.http.get()
+        debug.info(result)
+
+        print("\n**** Done, will read response shortly... ****")
+        time.sleep(readDelay)
+        result = picoLTE.http.read_response()
+        debug.info(result)
+        if result["status"] == Status.SUCCESS:
+            # Looks good, reset delay
+            readDelay = 5
+            parseAndPrint(result)
+        else:
+            # No dice, extend delay before reading response
+            readDelay = 15
+        USER_LED.off()
+except:
+    print("\n**** Exception occurred! Cleaning up... ****")
+    set_neopixel_off()
     USER_LED.off()
-    
-USER_LED.off()
+
 print("\n**** Program Exiting ****")
+sys.exit()
