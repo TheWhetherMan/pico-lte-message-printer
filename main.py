@@ -1,4 +1,5 @@
 import machine, neopixel, utime, os, time, sys
+import ujson
 from machine import Pin
 from pico_lte.utils.status import Status
 from pico_lte.core import PicoLTE
@@ -6,7 +7,7 @@ from pico_lte.common import debug
 from printer import printMessage
 
 # Uncomment this for verbose logging
-#debug.set_level(0)
+debug.set_level(0)
 
 printMessage("Hi there! Setting things up...")
 
@@ -14,12 +15,13 @@ printMessage("Hi there! Setting things up...")
 USER_LED = Pin(22, mode=Pin.OUT)
 NEOPIXEL_NUM_LEDS = 8
 NEOPIXEL_PIN = machine.Pin(15)
-MAIN_LOOP_DELAY_SECONDS = 30
+MAIN_LOOP_DELAY_SECONDS = 60
 
 # Variables
+picoLTE = PicoLTE()
 neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
 showRainbow = False            
-readDelay = 5
+readDelay = 15
         
 # Sets all NeoPixel LEDs off
 def set_neopixel_off():
@@ -34,70 +36,76 @@ def run_initial_setup():
     USER_LED.off()
 
     # Initialize file system as needed
-    print("\n**** Reading root directory... ****")
+    print("run_initial_setup: Reading root directory... ****")
     print(os.listdir())
     initial_file = open("data.txt", "a")
     data = initial_file.read()
-    print("\n**** Data file content:")
+    print("\run_initial_setup: Data file content:")
     if not data:
-        print("NO DATA FOUND")
+        print("run_initial_setup: NO DATA FOUND")
     else:
         print(data)
     initial_file.close()
 
     # Log ambient temperature for fun
-    print("\n**** Reading ambient temperature... ****")
+    print("run_initial_setup: Reading ambient temperature... ****")
     sensor_temp = machine.ADC(4)
     conversion_factor = 3.3 / (65535)
     reading = sensor_temp.read_u16() * conversion_factor
     temp = 27 - (reading -0.706)/(0.001721)
     print(temp)
 
-    # Reach out to web for data
-    print("\n**** Registering LTE network... ****")
-    picoLTE = PicoLTE()
+    # Get LTE system ready
+    print("run_initial_setup: Registering LTE network... ****")
     picoLTE.network.register_network()
     picoLTE.http.set_context_id()
     picoLTE.network.get_pdp_ready()
     picoLTE.http.set_server_url()
-    print("\n**** Ready to send requests... ****")
 
 # Check if the response message matches the one in the data file. If not, we should print it
 def check_if_should_print(extracted_message):
-    print("\n**** check_file_against_message(" + extracted_message + ") ****")
-    file = open("data.txt", "r")
+    print("check_if_should_print(" + extracted_message + ") ****")
+    file = open("data.txt", "r+")
     file_message = file.read()
-    messages_differ = extracted_message != file_message
-    if messages_differ:
-        file.write(extracted_message, "w")
-    file.close()
-    return messages_differ
+    if extracted_message != file_message:
+        print("check_if_should_print: File data is '" + file_message + "', which doesn't match ****")
+        file.write(extracted_message)
+        file.close()
+        return True
+    else:
+        print("check_if_should_print: File data is '" + file_message + "' which matches latest message ****")
+        file.close()
+        return False
 
 # Parse the response for the message, check if it matches the data file, and print if it doesn't
-def parse_and_try_print(response):
+def parse_and_try_print(message):
     try:
-        print("\n**** parse_and_try_print(" + response + ") ****")
-        response_parts = response.split("\"")
-        print(response_parts)
-        extracted_message = response_parts[1]
-        print("Checking response message of: '" + extracted_message + "'")
-        should_print = check_if_should_print(extracted_message)
+        print("parse_and_try_print: Checking response message of: '" + message + "' ****")
+        should_print = check_if_should_print(message)
         if should_print:
             light_up_neopixel = True
-            print("\n**** Printing message... ****")
-            printMessage(response)
+            print("parse_and_try_print: Printing message... ****")
+            printMessage(message)
             light_up_neopixel = False
     except:
-        print("\n**** Exception occurred while parsing response! ****")
+        print("parse_and_try_print: Exception occurred while parsing response! ****")
         light_up_neopixel = False
+        
+class WebResponse(object):
+    def __init__(self, json_str):
+        data = ujson.loads(json_str)
+        for key, value in data.items():
+            setattr(self, key, value)
 
 # Run the initial setup and then keep sending requests (main loop)
 try:
+    print("main_loop: Initial setup starting... ****")
     run_initial_setup()
+    print("main_loop: Initial setup complete... ****")
     while True:
         USER_LED.on()
+        print("main_loop: Sending web request... ****")
         result = picoLTE.http.get()
-        print("\n**** Done! (" + result + "). Will read response shortly... ****")
         time.sleep(readDelay)
         # After the delay, read response. This gives the Sixfab LTE time to process the request
         result = picoLTE.http.read_response()
@@ -105,19 +113,30 @@ try:
         # Check if the response was successful
         if result["status"] == Status.SUCCESS:
             # Looks good, reset delay to the default
-            readDelay = 5
-            parse_and_try_print(result)
+            readDelay = 15
+            json_result = ujson.dumps(result)
+            if len(json_result) > 250:
+                # This seems excessively long, is this a 404 page?
+                print("main_loop: Got a response longer than max characters! Not going to print!")
+                readDelay = 30
+            else:
+                # Hopefully got a good result?
+                print("main_loop: Got what looks like a good response")
+                webby = WebResponse(json_result)
+                print(webby)
+                parse_and_try_print(webby.response[1])
         else:
             # No dice, extend delay before reading response. Try again next time
-            readDelay = 15
+            readDelay = 30
         USER_LED.off()
         # Wait this many seconds before running the loop again
         time.sleep(MAIN_LOOP_DELAY_SECONDS)
-except:
-    print("\n**** Exception occurred! Cleaning up... ****")
+except Exception as e:
+    sys.print_exception(e)
+    print("main_loop: Exception occurred! Cleaning up... ****")
     light_up_LEDs = False
     set_neopixel_off()
     USER_LED.off()
 
 print("\n**** Program Exiting ****")
-sys.exit()
+#sys.exit()
