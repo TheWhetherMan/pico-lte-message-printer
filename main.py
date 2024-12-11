@@ -104,6 +104,10 @@ try:
     print("main_loop: Initial setup complete... ****")
     while True:
         USER_LED.on()
+        # Reset the HTTP context before making a new request
+        picoLTE.http.set_context_id()
+        picoLTE.network.get_pdp_ready()
+        picoLTE.http.set_server_url()
         print("main_loop: Sending web request... ****")
         result = picoLTE.http.get()
         time.sleep(readDelay)
@@ -112,18 +116,16 @@ try:
         debug.info(result)
         # Check if the response was successful
         if result["status"] == Status.SUCCESS:
-            # Looks good, reset delay to the default
-            readDelay = 15
             json_result = ujson.dumps(result)
             if len(json_result) > 250:
                 # This seems excessively long, is this a 404 page?
                 print("main_loop: Got a response longer than max characters! Not going to print!")
                 readDelay = 30
             else:
-                # Hopefully got a good result?
+                # Looks good, reset delay to the default
                 print("main_loop: Got what looks like a good response")
+                readDelay = 15
                 webby = WebResponse(json_result)
-                print(webby)
                 parse_and_try_print(webby.response[1])
         else:
             # No dice, extend delay before reading response. Try again next time
