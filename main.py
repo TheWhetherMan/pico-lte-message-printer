@@ -9,19 +9,18 @@ from printer import printMessage
 # Uncomment this for verbose logging
 debug.set_level(0)
 
-printMessage("Hi there! Setting things up...")
-
 # Constants
 USER_LED = Pin(22, mode=Pin.OUT)
 NEOPIXEL_NUM_LEDS = 8
 NEOPIXEL_PIN = machine.Pin(15)
-MAIN_LOOP_DELAY_SECONDS = 60
+MAIN_LOOP_DELAY_SECONDS = 1800 # 30 minute loop delay
 
 # Variables
 picoLTE = PicoLTE()
 neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
 showRainbow = False            
 readDelay = 15
+run_count = 0
         
 # Sets all NeoPixel LEDs off
 def set_neopixel_off():
@@ -130,7 +129,14 @@ try:
         else:
             # No dice, extend delay before reading response. Try again next time
             readDelay = 30
+        
+        # Get ready for the next loop
         USER_LED.off()
+        run_count += 1
+        if run_count > 24:
+            print("main_loop: Reached run count threshold, resetting device...")
+            machine.reset()
+        
         # Wait this many seconds before running the loop again
         time.sleep(MAIN_LOOP_DELAY_SECONDS)
 except Exception as e:
@@ -141,4 +147,5 @@ except Exception as e:
     USER_LED.off()
 
 print("\n**** Program Exiting ****")
-#sys.exit()
+machine.reset()
+
