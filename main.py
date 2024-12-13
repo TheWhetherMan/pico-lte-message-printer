@@ -21,6 +21,7 @@ neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
 showRainbow = False            
 readDelay = 15
 run_count = 0
+request_failures = 0
         
 # Sets all NeoPixel LEDs off
 def set_neopixel_off():
@@ -110,9 +111,11 @@ try:
         print("main_loop: Sending web request... ****")
         result = picoLTE.http.get()
         time.sleep(readDelay)
+
         # After the delay, read response. This gives the Sixfab LTE time to process the request
         result = picoLTE.http.read_response()
         debug.info(result)
+
         # Check if the response was successful
         if result["status"] == Status.SUCCESS:
             json_result = ujson.dumps(result)
@@ -120,21 +123,27 @@ try:
                 # This seems excessively long, is this a 404 page?
                 print("main_loop: Got a response longer than max characters! Not going to print!")
                 readDelay = 30
+                request_failures += 1
             else:
                 # Looks good, reset delay to the default
                 print("main_loop: Got what looks like a good response")
                 readDelay = 15
+                request_failures = 0
                 webby = WebResponse(json_result)
                 parse_and_try_print(webby.response[1])
         else:
             # No dice, extend delay before reading response. Try again next time
             readDelay = 30
+            request_failures += 1
         
         # Get ready for the next loop
         USER_LED.off()
         run_count += 1
         if run_count > 24:
             print("main_loop: Reached run count threshold, resetting device...")
+            machine.reset()
+        elif request_failures > 2:
+            print("main_loop: Too many request failures, resetting device...")
             machine.reset()
         
         # Wait this many seconds before running the loop again
@@ -148,4 +157,3 @@ except Exception as e:
 
 print("\n**** Program Exiting ****")
 machine.reset()
-
