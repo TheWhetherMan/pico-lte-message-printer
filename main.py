@@ -18,7 +18,7 @@ MAIN_LOOP_DELAY_SECONDS = 1800 # 30 minute loop delay
 # Variables
 picoLTE = PicoLTE()
 neopixel = neopixel.NeoPixel(NEOPIXEL_PIN, NEOPIXEL_NUM_LEDS)
-showRainbow = False            
+light_up_neopixel = False            
 readDelay = 15
 run_count = 0
 request_failures = 0
@@ -151,7 +151,7 @@ try:
 except Exception as e:
     sys.print_exception(e)
     print("main_loop: Exception occurred! Cleaning up... ****")
-    light_up_LEDs = False
+    light_up_neopixel = False
     set_neopixel_off()
     USER_LED.off()
 
