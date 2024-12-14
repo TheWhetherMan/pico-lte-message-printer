@@ -15,6 +15,7 @@ NEOPIXEL_NUM_LEDS = 8
 NEOPIXEL_PIN = machine.Pin(15)
 NEOPIXEL_RUN_TIME_SECONDS = 2
 MAIN_LOOP_DELAY_SECONDS = 1800 # 30 minute loop delay
+REPONSE_MAX_LENGTH_THRESHOLD = 1000
 
 # Variables
 picoLTE = PicoLTE()
@@ -145,7 +146,7 @@ try:
         # Check if the response was successful
         if result["status"] == Status.SUCCESS:
             json_result = ujson.dumps(result)
-            if len(json_result) > 250:
+            if len(json_result) > REPONSE_MAX_LENGTH_THRESHOLD or "<HTML>" in json_result:
                 # This seems excessively long, is this a 404 page?
                 print("main_loop: Got a response longer than max characters! Not going to print!")
                 readDelay = 30
