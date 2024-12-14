@@ -80,15 +80,15 @@ def run_initial_setup():
     picoLTE.http.set_server_url()
 
 # Check if the response message matches the one in the data file. If not, we should print it
-def check_if_should_print(extracted_message):
-    print("check_if_should_print(" + extracted_message + ") ****")
+def check_if_should_print(message_to_check):
+    print("check_if_should_print(" + message_to_check + ") ****")
     file = open("data.txt", "r")
     file_message = file.read()
-    if extracted_message != file_message:
+    if message_to_check != file_message:
         print("check_if_should_print: File data is '" + file_message + "', which doesn't match ****")
         file.close()
         file = open("data.txt", "w")
-        file.write(extracted_message)
+        file.write(message_to_check)
         file.close()
         return True
     else:
@@ -100,7 +100,9 @@ def check_if_should_print(extracted_message):
 def parse_and_try_print(message):
     try:
         print("parse_and_try_print: Checking response message of: '" + message + "' ****")
-        should_print = check_if_should_print(message)
+        sanitized_message = message.replace("\"", "")
+        print("parse_and_try_print: Sanitized message is -> " + sanitized_message)
+        should_print = check_if_should_print(sanitized_message)
         if should_print:
             # Light up the NeoPixel for a few cycles
             neopixel_cycle_count = 0
@@ -110,7 +112,7 @@ def parse_and_try_print(message):
             set_neopixel_off();
             # Print the message
             print("parse_and_try_print: Printing message... ****")
-            printMessage(message)
+            printMessage(sanitized_message)
     except:
         print("parse_and_try_print: Exception occurred while parsing response! ****")
         set_neopixel_off()
@@ -161,6 +163,7 @@ try:
             request_failures += 1
         
         # Get ready for the next loop
+        print("main_loop: Main loop functions done...")
         USER_LED.off()
         run_count += 1
         if run_count > 24:
@@ -181,3 +184,4 @@ except Exception as e:
 
 print("\n**** Program Exiting ****")
 machine.reset()
+
