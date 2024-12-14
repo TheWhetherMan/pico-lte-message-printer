@@ -57,7 +57,7 @@ def run_initial_setup():
     print(os.listdir())
     initial_file = open("data.txt", "a")
     data = initial_file.read()
-    print("\run_initial_setup: Data file content:")
+    print("run_initial_setup: Data file content:")
     if not data:
         print("run_initial_setup: NO DATA FOUND")
     else:
@@ -82,10 +82,12 @@ def run_initial_setup():
 # Check if the response message matches the one in the data file. If not, we should print it
 def check_if_should_print(extracted_message):
     print("check_if_should_print(" + extracted_message + ") ****")
-    file = open("data.txt", "r+")
+    file = open("data.txt", "r")
     file_message = file.read()
     if extracted_message != file_message:
         print("check_if_should_print: File data is '" + file_message + "', which doesn't match ****")
+        file.close()
+        file = open("data.txt", "w")
         file.write(extracted_message)
         file.close()
         return True
