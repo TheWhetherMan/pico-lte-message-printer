@@ -13,6 +13,7 @@ debug.set_level(0)
 USER_LED = Pin(22, mode=Pin.OUT)
 NEOPIXEL_NUM_LEDS = 8
 NEOPIXEL_PIN = machine.Pin(15)
+NEOPIXEL_RUN_TIME_SECONDS = 2
 MAIN_LOOP_DELAY_SECONDS = 1800 # 30 minute loop delay
 
 # Variables
@@ -22,12 +23,28 @@ light_up_neopixel = False
 readDelay = 15
 run_count = 0
 request_failures = 0
-        
+
 # Sets all NeoPixel LEDs off
 def set_neopixel_off():
     for i in range(NEOPIXEL_NUM_LEDS):
         neopixel[i] = (0, 0, 0)
     neopixel.write()
+
+def neopixel_color_cycle(wait):
+    for i in range(NEOPIXEL_NUM_LEDS):
+        neopixel[i] = (255, 0, 0)  # Set LED color to red
+    neopixel.write()
+    utime.sleep_ms(wait)
+    
+    for i in range(NEOPIXEL_NUM_LEDS):
+        neopixel[i] = (0, 255, 0)  # Set LED color to green
+    neopixel.write()
+    utime.sleep_ms(wait)
+    
+    for i in range(NEOPIXEL_NUM_LEDS):
+        neopixel[i] = (0, 0, 255)  # Set LED color to blue
+    neopixel.write()
+    utime.sleep_ms(wait)
 
 # Turns LEDs off, checks local data file, logs ambient temperature, and registers LTE network
 def run_initial_setup():
@@ -83,13 +100,18 @@ def parse_and_try_print(message):
         print("parse_and_try_print: Checking response message of: '" + message + "' ****")
         should_print = check_if_should_print(message)
         if should_print:
-            light_up_neopixel = True
+            # Light up the NeoPixel for a few cycles
+            neopixel_cycle_count = 0
+            while neopixel_cycle_count < (NEOPIXEL_RUN_TIME_SECONDS * 10):
+                neopixel_color_cycle(100)
+                neopixel_cycle_count += 1
+            set_neopixel_off();
+            # Print the message
             print("parse_and_try_print: Printing message... ****")
             printMessage(message)
-            light_up_neopixel = False
     except:
         print("parse_and_try_print: Exception occurred while parsing response! ****")
-        light_up_neopixel = False
+        set_neopixel_off()
         
 class WebResponse(object):
     def __init__(self, json_str):
